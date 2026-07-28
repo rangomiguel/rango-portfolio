@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mental Schematics — Catalog Prototype</title>
+<style>
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:#FFFFFF;
+    color:#000000;
+    font-family:ui-monospace,'Courier New',monospace;
+    font-size:14.5px;
+    line-height:1.6;
+  }
+  a, a:link, a:visited, a:hover, a:active{color:#000000;}
+  select{
+    font-family:inherit;font-size:13.5px;background:#FFFFFF;color:#000000;
+    border:1px solid #000000;padding:5px 8px;
+  }
+  .wrap{max-width:760px;margin:0 auto;padding:24px 20px 60px;}
+  hr{border:none;border-top:1px solid #000000;margin:20px 0;}
+
+  header h1{font-size:20px;margin:0 0 4px;text-transform:uppercase;letter-spacing:0.02em;}
+  header .sub{font-size:13px;margin:0 0 14px;}
+
+  .notice{
+    border:1px solid #000000;padding:12px 14px;font-size:12.5px;margin-bottom:18px;
+  }
+  .notice b{text-transform:uppercase;}
+
+  .controls{display:flex;gap:20px;flex-wrap:wrap;margin-bottom:6px;}
+  .control label{display:block;font-size:11.5px;margin-bottom:4px;text-transform:uppercase;}
+
+  .stats{font-size:12.5px;margin:14px 0 4px;}
+
+  nav.tabs{display:flex;gap:0;margin:18px 0 0;border-bottom:1px solid #000000;flex-wrap:wrap;}
+  nav.tabs a{
+    padding:8px 12px;font-size:12.5px;text-decoration:none;border:1px solid #000000;border-bottom:none;
+    margin-right:4px;margin-bottom:-1px;
+  }
+  nav.tabs a.active{background:#000000;color:#FFFFFF;}
+
+  table{width:100%;border-collapse:collapse;margin-top:14px;}
+  th,td{border:1px solid #000000;padding:6px 8px;font-size:12.5px;text-align:left;vertical-align:top;}
+  th{text-transform:uppercase;font-size:10.5px;}
+
+  .panel{display:none;}
+  .panel.active{display:block;}
+
+  .empty{padding:18px 0;font-size:13px;}
+
+  textarea, input[type=text]{
+    width:100%;font-family:inherit;font-size:12.5px;border:1px solid #000000;padding:8px;
+    background:#FFFFFF;color:#000000;
+  }
+  textarea{min-height:150px;}
+  label.f{display:block;font-size:11.5px;text-transform:uppercase;margin:12px 0 4px;}
+  label.f:first-child{margin-top:0;}
+  button{
+    font-family:inherit;font-size:12.5px;background:#FFFFFF;color:#000000;border:1px solid #000000;
+    padding:7px 14px;cursor:pointer;
+  }
+  button:hover{background:#000000;color:#FFFFFF;}
+  button:disabled{opacity:0.4;cursor:not-allowed;}
+  .btn-row{display:flex;gap:8px;margin-top:12px;}
+
+  .parse-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+  @media (max-width:700px){.parse-grid{grid-template-columns:1fr;}}
+
+  .trace-line{padding:4px 0;font-size:12px;border-bottom:1px solid #000000;}
+  .trace-line:last-child{border-bottom:none;}
+  .trace-dest{font-size:11px;}
+
+  footer{margin-top:30px;padding-top:14px;border-top:1px solid #000000;font-size:11.5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Mental Schematics — Catalog Prototype</h1>
+    <div class="sub">Sample company. Not a real business.</div>
+  </header>
+
+  <div class="notice">
+    <b>Prototype notice.</b> This is a working prototype built to explore whether the
+    country/system → catalog/registration/incident structure translates from Excel
+    into a browser. It is not a finished product. In particular: you cannot upload a
+    real spreadsheet or file into this page, nothing you enter here is saved anywhere,
+    and refreshing the page resets everything back to the sample data below. The
+    "Paste &amp; Parse" tab demonstrates the routing mechanism only, on fictional text.
+  </div>
+
+  <div class="controls">
+    <div class="control">
+      <label for="systemSelect">System</label>
+      <select id="systemSelect"></select>
+    </div>
+    <div class="control">
+      <label for="countrySelect">Country</label>
+      <select id="countrySelect"></select>
+    </div>
+  </div>
+  <div class="stats" id="statsLine"></div>
+
+  <nav class="tabs" id="tabs">
+    <a href="#" data-tab="catalog" class="active">Catalog</a>
+    <a href="#" data-tab="registrations">Registrations</a>
+    <a href="#" data-tab="ril">Incident log</a>
+    <a href="#" data-tab="parse">Paste &amp; parse</a>
+  </nav>
+
+  <div class="panel active" id="panel-catalog"></div>
+  <div class="panel" id="panel-registrations"></div>
+  <div class="panel" id="panel-ril"></div>
+  <div class="panel" id="panel-parse"></div>
+
+  <footer>Prototype — every system, catalog number, registration, and incident here is fictional.</footer>
+</div>
+
+<script>
+/* Fictional demo data — Mental Schematics is a sample company, not real. */
+const COUNTRIES = ["USA","Germany","Brazil","Japan","Australia"];
+const SYSTEMS = {
+  "Trellis Forearm System":"TRL","Voltix Plating System":"VLX","Anchorix Suture System":"ANX",
+  "Radiant Nail System":"RAD","Corvid Fragment System":"CVD"
+};
+const REG_BODY = {USA:"FDA (fictional)",Germany:"BfArM (fictional)",Brazil:"ANVISA (fictional)",Japan:"PMDA (fictional)",Australia:"TGA (fictional)"};
+const CATEGORIES = ["Implant Screw","Implant Plate","Implant Other","Instrument"];
+const MATERIALS = ["Ti-Alloy (fictional grade)","CoCr Alloy (fictional grade)","316L-type Stainless (fictional grade)","PEEK Composite (fictional grade)"];
+const ITEMS_PER_SYSTEM = 8;
+
+let seed = 99;
+function rand(){ seed=(seed*1103515245+12345)&0x7fffffff; return seed/0x7fffffff; }
+function pick(a){ return a[Math.floor(rand()*a.length)]; }
+function ri(a,b){ return a+Math.floor(rand()*(b-a+1)); }
+function pad(n,w){ return String(n).padStart(w,"0"); }
+
+let catalog=[], registrations=[], incidents=[], incidentSeq=1000;
+
+function buildData(){
+  catalog=[];
+  Object.entries(SYSTEMS).forEach(([system,code])=>{
+    for(let seq=1; seq<=ITEMS_PER_SYSTEM; seq++){
+      const size = pick([2.4,2.7,3.5,4.0,4.5]);
+      const length = pick([10,12,14,16,20,24]);
+      const category = pick(CATEGORIES);
+      catalog.push({
+        system, code, category,
+        catalogNum:`${code}-${100+seq*10}-${seq}`,
+        description:`${category.split(" ").pop()}, ${size}mm x ${length}mm, ${system.split(" ")[0]} family (fictional)`,
+        udi:`FIC${ri(100000000,999999999)}`,
+        partDrawing:`DRW-${ri(10000,99999)}-${pad(seq,2)}`,
+        sterile:pick(["Y","N"]), material:pick(MATERIALS), active:pick(["Y","Y","Y","N"]), seq
+      });
+    }
+  });
+  registrations=[];
+  catalog.forEach(item=>{
+    COUNTRIES.forEach(country=>{
+      const year = ri(2014,2023);
+      registrations.push({
+        catalogNum:item.catalogNum, country, regBody:REG_BODY[country],
+        countryClass:pick(["I","IIa","IIb","III"]), countryRule:ri(1,8),
+        regName:`${item.system} - ${country} Registration (fictional)`,
+        regNum:`${country.slice(0,2).toUpperCase()}-${ri(100000,999999)}`,
+        approvalDate:`${pad(ri(1,28),2)}/${pad(ri(1,12),2)}/${year}`,
+        expDate: country==="USA" ? "N/A" : `${pad(ri(1,28),2)}/${pad(ri(1,12),2)}/${year+5}`
+      });
+    });
+  });
+  const ISSUE_TYPES=["Bent on delivery","Packaging breach","Labeling discrepancy","Surface finish nonconformance","Dimensional out of spec","Sterility indicator failure"];
+  const STATUSES=["Closed - No Action","Closed - CAPA Issued","Under Investigation","Closed - Replaced Unit"];
+  const ACTIONS=["Vendor notified, incoming inspection tightened","Unit replaced under warranty, no trend identified","Root cause traced to packaging vendor, spec updated","No corrective action required, isolated event","CAPA opened, in-process inspection added"];
+  incidents=[];
+  catalog.forEach(item=>{
+    const n = ri(2,5);
+    for(let i=0;i<n;i++){
+      incidentSeq++;
+      const y = ri(2021,2026);
+      incidents.push({
+        id:`INC-${incidentSeq}`, catalogNum:item.catalogNum, system:item.system,
+        dateReported:`${pad(ri(1,28),2)}/${pad(ri(1,12),2)}/${y}`,
+        type:pick(ISSUE_TYPES), severity:pick(["Low","Medium","High"]), action:pick(ACTIONS), status:pick(STATUSES)
+      });
+    }
+  });
+}
+buildData();
+
+let fieldMapping = [
+  {docType:"Catalog Spec Sheet", label:"Catalog Number", table:"catalog", field:"catalogNum"},
+  {docType:"Catalog Spec Sheet", label:"Description", table:"catalog", field:"description"},
+  {docType:"Catalog Spec Sheet", label:"UDI", table:"catalog", field:"udi"},
+  {docType:"Catalog Spec Sheet", label:"Material", table:"catalog", field:"material"},
+  {docType:"Registration Certificate", label:"Catalog Number", table:"registrations", field:"catalogNum"},
+  {docType:"Registration Certificate", label:"Country", table:"registrations", field:"country"},
+  {docType:"Registration Certificate", label:"Registration Number", table:"registrations", field:"regNum"},
+  {docType:"Incident Report", label:"Catalog Number", table:"incidents", field:"catalogNum"},
+  {docType:"Incident Report", label:"Date Reported", table:"incidents", field:"dateReported"},
+  {docType:"Incident Report", label:"Incident Type", table:"incidents", field:"type"},
+];
+const SAMPLE_TEXT = `Catalog Number: TRL-110-1
+Description: Screw, 2.4mm x 24mm, Trellis family (fictional)
+UDI: FIC123456789
+Material: Ti-Alloy (fictional grade)`;
+
+const state = { system: Object.keys(SYSTEMS)[0], country: COUNTRIES[0], tab: "catalog", staged: [] };
+
+function el(tag, attrs={}, children=[]){
+  const e = document.createElement(tag);
+  Object.entries(attrs).forEach(([k,v])=>{
+    if(k==="class") e.className=v;
+    else if(k.startsWith("on")) e.addEventListener(k.slice(2), v);
+    else e.setAttribute(k,v);
+  });
+  (Array.isArray(children)?children:[children]).forEach(c=>{ if(c!=null) e.appendChild(typeof c==="string"?document.createTextNode(c):c); });
+  return e;
+}
+
+function renderControls(){
+  const sysSel = document.getElementById("systemSelect");
+  sysSel.innerHTML = "";
+  Object.keys(SYSTEMS).forEach(s=> sysSel.appendChild(el("option",{value:s},s)));
+  sysSel.value = state.system;
+  sysSel.onchange = ()=>{ state.system = sysSel.value; renderAll(); };
+
+  const ctrySel = document.getElementById("countrySelect");
+  ctrySel.innerHTML = "";
+  COUNTRIES.forEach(c=> ctrySel.appendChild(el("option",{value:c},c)));
+  ctrySel.value = state.country;
+  ctrySel.onchange = ()=>{ state.country = ctrySel.value; renderAll(); };
+}
+
+function renderStats(){
+  const open = incidents.filter(i=>i.status==="Under Investigation").length;
+  document.getElementById("statsLine").textContent =
+    `${Object.keys(SYSTEMS).length} systems · ${COUNTRIES.length} countries · ${catalog.length} catalog items · ${open} open incidents`;
+}
+
+function renderCatalog(){
+  const rows = catalog.filter(c=>c.system===state.system);
+  const panel = document.getElementById("panel-catalog");
+  panel.innerHTML = "";
+  if(!rows.length){ panel.appendChild(el("div",{class:"empty"},"No catalog items for this system.")); return; }
+  const table = el("table");
+  table.appendChild(el("tr",{},["Category","Catalog #","Description","UDI","Drawing #","Sterile?","Material","Active?"].map(h=>el("th",{},h))));
+  rows.forEach(r=>{
+    table.appendChild(el("tr",{},[
+      el("td",{},r.category), el("td",{},r.catalogNum), el("td",{},r.description),
+      el("td",{},r.udi), el("td",{},r.partDrawing), el("td",{},r.sterile), el("td",{},r.material), el("td",{},r.active)
+    ]));
+  });
+  panel.appendChild(table);
+}
+
+function renderRegistrations(){
+  const catNums = catalog.filter(c=>c.system===state.system).map(c=>c.catalogNum);
+  const rows = registrations.filter(r=>catNums.includes(r.catalogNum) && r.country===state.country);
+  const panel = document.getElementById("panel-registrations");
+  panel.innerHTML = "";
+  if(!rows.length){ panel.appendChild(el("div",{class:"empty"},"No registrations for this system/country.")); return; }
+  const table = el("table");
+  table.appendChild(el("tr",{},["Catalog #","Regulatory Body","Class","Registration Name","Registration #","Approval","Expiration"].map(h=>el("th",{},h))));
+  rows.forEach(r=>{
+    table.appendChild(el("tr",{},[
+      el("td",{},r.catalogNum), el("td",{},r.regBody), el("td",{},r.countryClass),
+      el("td",{},r.regName), el("td",{},r.regNum), el("td",{},r.approvalDate), el("td",{},r.expDate)
+    ]));
+  });
+  panel.appendChild(table);
+}
+
+function renderRIL(){
+  const rows = incidents.filter(i=>i.system===state.system);
+  const panel = document.getElementById("panel-ril");
+  panel.innerHTML = "";
+  if(!rows.length){ panel.appendChild(el("div",{class:"empty"},"No incidents for this system.")); return; }
+  const table = el("table");
+  table.appendChild(el("tr",{},["Incident ID","Catalog #","Date","Type","Severity","Corrective Action","Status"].map(h=>el("th",{},h))));
+  rows.slice().reverse().forEach(r=>{
+    table.appendChild(el("tr",{},[
+      el("td",{},r.id), el("td",{},r.catalogNum), el("td",{},r.dateReported),
+      el("td",{},r.type), el("td",{},r.severity), el("td",{},r.action), el("td",{},r.status)
+    ]));
+  });
+  panel.appendChild(table);
+}
+
+function renderParse(){
+  const panel = document.getElementById("panel-parse");
+  panel.innerHTML = "";
+  const grid = el("div",{class:"parse-grid"});
+
+  const left = el("div",{});
+  left.appendChild(el("label",{class:"f"},"Document type"));
+  const docSel = el("select",{id:"docTypeSelect"}, [...new Set(fieldMapping.map(m=>m.docType))].map(dt=>el("option",{value:dt},dt)));
+  left.appendChild(docSel);
+  left.appendChild(el("label",{class:"f"},"Pasted text (one \u201cLabel: Value\u201d per line)"));
+  const ta = el("textarea",{id:"parseTextarea"});
+  ta.value = SAMPLE_TEXT;
+  left.appendChild(ta);
+  const row = el("div",{class:"btn-row"});
+  row.appendChild(el("button",{onclick:()=>runParse(docSel.value, ta.value)},"Parse"));
+  row.appendChild(el("button",{onclick:()=>{ ta.value=""; state.staged=[]; renderTrace(); }},"Clear"));
+  left.appendChild(row);
+  grid.appendChild(left);
+
+  const right = el("div",{});
+  right.appendChild(el("label",{class:"f"},"Parse trace"));
+  const traceWrap = el("div",{id:"traceWrap"});
+  traceWrap.appendChild(el("div",{class:"empty"},"Run Parse to see each line routed here."));
+  right.appendChild(traceWrap);
+  const insertBtn = el("button",{id:"insertBtn",disabled:"true",onclick:insertStaged},"Insert into tables (this session only)");
+  right.appendChild(el("div",{class:"btn-row"}, insertBtn));
+  grid.appendChild(right);
+
+  panel.appendChild(grid);
+}
+
+function runParse(docType, text){
+  const staged = [];
+  text.split("\n").forEach(line=>{
+    const ln = line.trim();
+    if(!ln) return;
+    const idx = ln.indexOf(":");
+    if(idx===-1) return;
+    const label = ln.slice(0,idx).trim();
+    const value = ln.slice(idx+1).trim();
+    const m = fieldMapping.find(x=>x.docType===docType && x.label.toLowerCase()===label.toLowerCase());
+    staged.push({label, value, table:m?m.table:null, field:m?m.field:null});
+  });
+  state.staged = staged;
+  renderTrace();
+}
+
+function renderTrace(){
+  const wrap = document.getElementById("traceWrap");
+  const btn = document.getElementById("insertBtn");
+  wrap.innerHTML = "";
+  if(!state.staged.length){
+    wrap.appendChild(el("div",{class:"empty"},"Run Parse to see each line routed here."));
+    if(btn) btn.setAttribute("disabled","true");
+    return;
+  }
+  state.staged.forEach(s=>{
+    const mapped = !!s.table;
+    const line = el("div",{class:"trace-line"});
+    line.appendChild(el("div",{},`${s.label}: ${s.value}`));
+    line.appendChild(el("div",{class:"trace-dest"}, mapped ? `-> mapped to ${s.table}.${s.field}` : "-> unmapped"));
+    wrap.appendChild(line);
+  });
+  if(btn){
+    if(state.staged.some(s=>s.table)) btn.removeAttribute("disabled");
+    else btn.setAttribute("disabled","true");
+  }
+}
+
+function insertStaged(){
+  const mapped = state.staged.filter(s=>s.table);
+  if(!mapped.length) return;
+  const byTable = {};
+  mapped.forEach(s=>{ byTable[s.table]=byTable[s.table]||{}; byTable[s.table][s.field]=s.value; });
+  if(byTable.catalog){
+    const rec = Object.assign({system:state.system, code:"", category:"Implant Other", sterile:"N", active:"Y", seq: catalog.filter(c=>c.system===state.system).length+1}, byTable.catalog);
+    if(!rec.catalogNum) rec.catalogNum = `NEW-${Date.now()%100000}`;
+    catalog.push(rec);
+  }
+  if(byTable.registrations){
+    registrations.push(Object.assign({country:state.country, regBody:REG_BODY[state.country]||"—", countryClass:"N/A", countryRule:0, regName:"—"}, byTable.registrations));
+  }
+  if(byTable.incidents){
+    incidentSeq++;
+    incidents.push(Object.assign({id:`INC-${incidentSeq}`, system:state.system, severity:"Medium", status:"Under Investigation", action:"—"}, byTable.incidents));
+  }
+  state.staged = [];
+  renderAll();
+  renderParse();
+}
+
+document.getElementById("tabs").addEventListener("click", (e)=>{
+  const a = e.target.closest("a");
+  if(!a) return;
+  e.preventDefault();
+  state.tab = a.dataset.tab;
+  document.querySelectorAll("#tabs a").forEach(x=>x.classList.toggle("active", x===a));
+  ["catalog","registrations","ril","parse"].forEach(t=>{
+    document.getElementById("panel-"+t).classList.toggle("active", t===state.tab);
+  });
+});
+
+function renderAll(){
+  renderControls();
+  renderStats();
+  renderCatalog();
+  renderRegistrations();
+  renderRIL();
+}
+renderAll();
+renderParse();
+</script>
+</body>
+</html>
