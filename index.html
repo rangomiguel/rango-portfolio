@@ -36,12 +36,10 @@
 <section id="project">
 <h1>Projects</h1>
 <p>&nbsp;</p>
-<div class="project-name">Regulatory Data Console</div>
+<h2 class="project-name"><strong>Regulatory Data Console</strong></h2>
 <p>During my 2025 summer internship at Skeletal Dynamics, I replaced a ~400-spreadsheet regulatory process with one dynamic, self-maintaining system. I then rebuilt it a second time as a standalone web app to show the same architecture without Excel.</p>
-<p class="stat-line">~400 &rarr; 1 spreadsheets consolidated &nbsp;&middot;&nbsp; ~20 countries covered &nbsp;&middot;&nbsp; 2 builds (Excel/VBA, then web)</p>
-<p class="tag-line">TAGS: vba, excel, python, javascript, regulatory-ops</p>
-<p class="tag-line">&nbsp;</p>
-<h2><span style="color: #ff0000;">The problem</span></h2>
+<p class="stat-line">&nbsp;</p>
+<h3><span style="color: #ff0000;">The problem</span></h3>
 <p>Skeletal Dynamics has ~20 medical systems and are planning to sell in ~20 countries. Upon my arrival, data was stored as follows: one spreadsheet per country/system combination, close to 400 files. Keeping them in sync, and re-entering data by hand from PDFs and scanned documents, was slow and error-prone heading into regulatory submissions.</p>
 <h3>solution.V1 &mdash; Excel + VBA</h3>
 <p>Consolidated the ~400 files into a single workbook, using a VBA-driven country/system selector so the workbook behaved like hundreds of purpose-built sheets while actually being one maintained file. Also wrote Python scripts and Excel formulas to automate formatting and data validation, plus a repeatable process for pasting text extracted from PDFs and Windows text-extraction tools directly into the right structured fields, instead of retyping it by hand.</p>
